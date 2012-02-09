@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<characters>
+	<character orientation='good'>
+		<name>Mario</name>
+		<nationality>Italian</nationality>
+		<love_interest>Princess Peach</love_interest>
+		<sidekick>Luigi</sidekick>
+		<attack_style>Jumping on heads</attack_style>
+		<recent_games>
+			<game platform='wii'>Mario Galaxy</game>
+			<game platform='wii'>Mario Galaxy 2</game>
+			<game platform='3ds'>Mario Bros. 3D</game>
+		</recent_games>
+	</character>
+	<character orientation='good'>
+		<name>Kirby</name>
+		<nationality>Unknown</nationality>
+		<sidekick>Prince Fluff</sidekick>
+		<attack_style>Eating</attack_style>
+		<recent_games>
+			<game platform='wii'>Kirby's Epic Yarn</game>
+			<game platform='ds'>Kirby's Mass Attack</game>
+			<game platform='wii'>Kirby's Return to Dreamland</game>
+		</recent_games>
+	</character>
+	<character orientation='evil'>
+		<name>Bowser</name>
+		<nationality>Unknown</nationality>
+		<sidekick>Bowser Jr.Fluff</sidekick>
+		<attack_style>Fire breathing</attack_style>
+		<recent_games>
+			<game platform='ds'>Bowser's Inside Story</game>
+		</recent_games>
+	</character>
+</characters>
