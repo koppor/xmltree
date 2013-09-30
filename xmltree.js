@@ -6,15 +6,20 @@
 
 (function($) {
 
+	//log progress?
+	var log = location.href.indexOf('XMLTreeLog=true') != -1;
+
 	XMLTree = function(jdo, subTreeRequest) {
 
 		/* -------------------
 		| PREP & VALIDATION
 		------------------- */
+		
+		if (location.href.indexOf('debug') != -1) this.debug = true;
 
 		//ensure was instantiated, not merely called
 		if (!(this instanceof XMLTree)) {
-			if (window.console && console.log) console.log("XMLTree was called but not instantiated");
+			debug("XMLTree was called but not instantiated");
 			return;
 		}
 
@@ -30,22 +35,28 @@
 			attrLI,
 			container = $(jdo.container),
 			rand = Math.floor(Math.random() * 10000000),
-			thiss = this;
+			thiss = this,
+			fpath_req;
 
 		//establish tree container - if making the outer tree, create a new UL. If this is a sub-tree request, i.e. called by self,
 		//merge new tree into existing UL of caller LI
-		this.tree = !subTreeRequest ? $('<ul>') : container.children('ul');
+		this.tree = !subTreeRequest ? $('<ul>') : container.children('ul').hide();
 
 		//log this instance of the tree and update global instances tracker
 		this.instanceID = XMLTree.instancesCounter;
+		this.tree.attr('id', 'tree_'+this.instanceID);
 		XMLTree.instancesCounter++;
 
 		//add a few classes to tree, unless it's a sub-tree (i.e. being inserted later into branch of master tree, in which case it can
 		//just inherit master tree's classes
 		if (!subTreeRequest) {
 			this.tree.addClass('xmltree');
+			if (jdo['class']) this.tree.addClass(jdo['class']);
 			if (jdo.startExpanded) this.tree.addClass('startExpanded');
 		}
+		
+		//and any data?
+		if (jdo.data) for (var i in jdo.data) this.tree.data(i, jdo.data[i]);
 
 		//if it is a sub-tree request, add .forcePlusMin to tree (i.e. expanded LI) so plus/min icon of sub-tree shows, doesn't inherit
 		//CSS from parent to hide it
@@ -60,21 +71,45 @@
 		| closing HTML tags aren't mullered by jQuery during delving
 		------------------- */
 
-		//load file
-		if (jdo.fpath)
-			$.ajax({url: jdo.fpath, cache: jdo.cache == undefined ? true : jdo.cache, dataType: !jdo.jsonp ? 'xml' : 'jsonp'})
-				.done(function(xml) { thiss.xml = xml; thiss.actOnXML(xml); })
+		//get XML from file ('done' handler fires not here but slightly further down)
+		if (jdo.fpath) {
+			
+			debug('XML tree fpath:', jdo.fpath);
+
+			//get data...
+			var dataType = !jdo.jsonp ? (!jdo.json ? 'xml' : 'json') : 'jsonp';
+			fpath_req = $.ajax({url: jdo.fpath, cache: jdo.cache == undefined ? true : jdo.cache, dataType: dataType})
+
+				//...success. Establish XML. If jdo.json, convert JSON respone to XML text then reinitialise
+				.done(function(data) {
+					if (jdo.json) {
+						if (jdo.jsonCallback) data = jdo.jsonCallback(data);
+						delete jdo.fpath;
+						jdo.xml = json_to_xml(data);
+						return new XMLTree(jdo, subTreeRequest);
+					}
+					thiss.xml = data;
+					actOnXML.call(thiss, data);
+				})
+
+				//...error
 				.error(function() { alert('XMLTree error - could not load XML from '+jdo.fpath); });
 
 		//passed as string
-		else {
+		} else {
 			if (typeof jdo.xml == 'string')
 
-				//rename tags
-				this.xml = jdo.xml
+				this.xml = jdo.xml;
+
+				//rename tags (why are we doing this?? Forgot! Disallow if param passed)
+				if (!jdo.noTagRenaming) this.xml = this.xml
 					.replace(/<(\/)?(\w+)([^>]*)>/g, function($0, $1, $2, $3) { return '<'+($1 ? $1 : '')+$2+'_'+rand+($3 ? $3 : '')+'>'; })
 					.replace(/<\?xml[^>]+>\s*/, '');
-			this.actOnXML(jdo.xml);
+
+				//also strip out entities as they break JS XML parsing
+				//this.xml = this.xml.replace(/&amp;|&(?= )/g, 'and').replace(/&\w+;/g, '');
+
+				actOnXML.call(this);
 		}
 
 
@@ -82,12 +117,12 @@
 		| ACT ON XML - once we have the XML, start outputting from it. If XML is string, first parse.
 		------------------- */
 
-		XMLTree.prototype.actOnXML = function(xml) {
+		function actOnXML() {
 
 			var thiss = this;
 
 			//establish XML (parsing as required) as a jQuery object
-			this.xml = $(typeof xml == 'string' ? parseXML(xml) : xml);
+			this.xml = $(typeof this.xml == 'string' ? parseXML(this.xml) : this.xml);
 
 			//if is sub-tree request, we don't want the root, just the items
 			if (subTreeRequest) this.xml = this.xml.children(':first');
@@ -95,15 +130,20 @@
 			//perform any XML manipulation rules stipulated
 			if (jdo.XMLCallback) this.xml = jdo.XMLCallback(this.xml);
 
+			debug('XML fed to XMLTree:', this.xml);
+
 			//open the tree at a specific point once output? Log as attribute on the XML node, so later we can spot this and
 			//open from that point
 			if (jdo.openAtPath) { var currSel = this.xml.find(jdo.openAtPath); if (currSel.length == 1) currSel.attr('currSel', 'true'); }
 
 			//start delving. Since JS seems to add another, outer root element, our (real) root it is child
-			this.xml.children().each(function() { thiss.delve($(this)); });
+			this.xml.children().each(function() { delve($(this), thiss.tree); });
+			
+			//if sub-tree, if we ended up with no data, remove tree and also corresponding plus/min. Else show tree.
+			if (subTreeRequest) this.xml.children().length ? this.tree.show() : this.tree.prev('.plusMin').andSelf().remove();
 
 			//do post-build stuff after delving complete
-			this.postBuild();
+			postBuild.call(this);
 		}
 
 
@@ -111,24 +151,26 @@
 		| MAIN FUNC for outputting. Called recursively for all levels of tree
 		------------------- */
 
-		XMLTree.prototype.delve = function(node) {
+		function delve(node, appendTo) {
+
+			var tagName, li, ul, attrs, i, kids, storedProcedure, LITxtHolder;
 
 			//what's this node's tag name?
-			var tagName = node[0].tagName.replace(new RegExp('_'+rand+'$', 'i'), '').toLowerCase();
+			tagName = node[0].tagName.replace(new RegExp('_'+rand+'$', 'i'), '').toLowerCase();
 
 			//build LI and sub-UL for this node (note, tagname is applied as class to LI, for easy post-tree traversal)
-			(this.delve_nextAppendTo ? this.delve_nextAppendTo : this.tree).append((li = $('<li>').addClass(tagName).append(LITxtHolder = $('<span>').addClass('LIText')).append(ul = $('<ul>'))));
+			appendTo.append((li = $('<li>').addClass(tagName).append(LITxtHolder = $('<span>').addClass('LIText')).append(ul = $('<ul>'))));
 
 			//plus/mins indicator
 			li.append($('<span>', {html: jdo.startExpanded ? '-' : '+'}).addClass('plusMin collapsed'));
 
 			//attributes...
-			var attrs = node[0].attributes;
+			attrs = node[0].attributes;
 
 			//...add node attributes as classes? If true, all, else if array, only attributes specified in that array
 			//For each eligible attribute, two classes are added: attr and attr-value
 			if (jdo.attrsAsClasses) {
-				for (var i=0; i<attrs.length; i++)
+				for (i=0; i<attrs.length; i++)
 					if (jdo.attrsAsClasses === true || (typeof jdo.attrsAsClasses == 'string' && jdo.attrsAsClasses == attrs[i].name) || (jdo.attrsAsClasses instanceof Array && $.inArray(attrs[i].name, jdo.attrsAsClasses) != -1))
 						li.addClass(attrs[i].name+'-'+attrs[i].value+' '+attrs[i].name);
 			}
@@ -137,13 +179,13 @@
 			if (jdo.attrsAsData) {
 				for (var i=0; i<attrs.length; i++)
 					if (jdo.attrsAsData === true || (typeof jdo.attrsAsData == 'string' && jdo.attrsAsData == attrs[i].name) || (jdo.attrsAsData instanceof Array && $.inArray(attrs[i].name, jdo.attrsAsData) != -1))
-						li.data(attrs[i].name, attrs[i].value);
+						li.attr('data-'+attrs[i].name, attrs[i].value);
 			}
 
 			//...output attributes as LIs? (yes, no, or yes but hidden)
 			if (!jdo.attrs || jdo.attrs != 'ignore') {
 				if (attrs) {
-					for(var i=0; i<attrs.length; i++) {
+					for(i=0; i<attrs.length; i++) {
 						if (attrs[i].value) {
 							ul.append(attrLI = $('<li>').append($('<span>', {text: attrs[i].value}).addClass('attrValue')).addClass('attr '+attrs[i].name).prepend($('<span>', {text: '@'+attrs[i].name+':'})));
 							if (jdo.attrs && jdo.attrs == 'hidden') attrLI.hide();
@@ -151,24 +193,36 @@
 					}
 				}
 			} else
-				var attrs = false;
+				attrs = false;
 
 			//node has children? (for current purposes, attributes are considered children). If contains only attributes, and jdo.attrs
 			//== 'hidden', count as having no kids
-			var kids = node.children();
+			kids = node.children();
 			if (!kids.length && (!attrs.length || (attrs.length && jdo.attrs && jdo.attrs == 'hidden'))) li.addClass('noKids');
 
 			//span to show node name
-			var tagName = $('<span>', {text: tagName}).addClass('tree_node');
+			tagName = $('<span>', {text: tagName}).addClass('tree_node');
 
-			//if no children, simply append text (if any), otherwise iteratively call self on children
-			if (!kids.length) {
-				LITxtHolder.prepend(node.text()).prepend(tagName);
-			} else {
-				this.delve_nextAppendTo = ul;
+			//if no children, simply append text (if any)
+			if (!kids.length)
+				LITxtHolder.prepend(node.immediateText()).prepend(tagName);
+				
+			//if children, set stored procedures that will run and create them only when branch expanded - unless starting expanded
+			//or if tree involves sub-trees
+			else {
 				LITxtHolder.prepend(node.immediateText()+(!jdo.noDots ? '..' : '')).prepend(tagName);
-				kids.each(function() { thiss.delve($(this)); });
-				this.delve_nextAppendTo = this.delve_nextAppendTo.parent().parent();
+				storedProcedure = (function(kids, parent) { return function() {
+					kids.each(function() { delve($(this), parent); });
+					if (jdo.renderCallback) jdo.renderCallback(parent, this, subTreeRequest);
+				}; })(kids, ul);
+				if (!jdo.startExpanded && !jdo.subTreeBranches) {
+					li.children('.plusMin').bind('click.sp', function() {
+						storedProcedure();
+						$(this).unbind('click.sp');
+					});
+				} else
+					storedProcedure();
+				
 			}
 
 		}
@@ -178,7 +232,7 @@
 		| POST BUILD stuff, e.g. click events, any user-defined HTML rules, update hash log in URL etc
 		------------------- */
 
-		XMLTree.prototype.postBuild = function() {
+		function postBuild() {
 
 			//if doing sub-tree requests, ensure relevent branches always have plus-min icons visible
 			if (jdo.subTreeBranches) {
@@ -190,19 +244,19 @@
 
 			//listen for clicks to expand/collapse nodes.
 
-			this.tree.delegate('.plusMin', 'click', function(evt) {
+			this.tree.on('click', '.plusMin', function(evt) {
 
 				//prep
 				evt.stopPropagation();
-				var uls = $(this).parent().children('ul');
-				var	currState = uls.filter(':hidden').length || !uls.length ? 'closed' : 'open',
-					xPathToNode = returnXPathToNode($(this).parent()),
-					li = $(this).parent();
-				if (currState == 'closed') uls.show(); else uls.hide();
+				var 
+				uls = $(this).parent().children('ul'),
+				currState = $(this).is('.collapsed') ? 'closed' : 'open',
+				xPathToNode = returnXPathToNode($(this).parent()),
+				li = $(this).parent();
+				uls[currState == 'closed' ? 'show' : 'hide']();
 
 				//Plus/min click callback? Pass LI, LI's XPath, event obj. and string 'open' or 'close'
-				if (jdo.plusMinCallback)
-					jdo.plusMinCallback(li, xPathToNode, evt, currState);
+				if (jdo.plusMinCallback) jdo.plusMinCallback(li, xPathToNode, evt, currState);
 
 				//Sub-tree request on expand? This should be a callback that returns a request URI that will load a sub-tree into
 				//the current branch. Callback receives same args as plusMinCallback above. If data previously fetched (denoted
@@ -212,10 +266,7 @@
 					var subTreeReqURI = jdo.subTreeRequest(li, xPathToNode, evt, currState);
 					if (subTreeReqURI && typeof subTreeReqURI == 'string') {
 						var tree = new XMLTree($.extend(jdo, {fpath: subTreeReqURI, container: li}), true);
-						if (tree) {
-							li.data('subTreeDataFetched', true);
-							tree.show();
-						}
+						if (tree) li.data('subTreeDataFetched', true);
 					}
 				}
 
@@ -237,7 +288,7 @@
 
 			//do callback on click to actual nodes? Pass LI, LI's xPath and event obj.
 			if (jdo.clickCallback)
-				this.tree.delegate('.LIText', 'click', function(evt) {
+				this.tree.on('click', '.LIText', function(evt) {
 					var li = $(this).closest('li'); jdo.clickCallback(li, returnXPathToNode(li), evt);
 				});
 
@@ -247,9 +298,8 @@
 			//hide node names, if params say so
 			if (jdo.hideNodeNames && !jdo.subTree) this.tree.addClass('hideNodeNames');
 
-			//HTML rules?
-			if (jdo.renderCallback) jdo.renderCallback(this.tree, this);
-
+			//render callback?
+			if (jdo.renderCallback) jdo.renderCallback(this.tree, this, subTreeRequest);
 
 			//onload - re-entry point(s) stipulated in URL hash or in params (@openAtPath)?
 
@@ -313,5 +363,44 @@
 		 });
 		return path.join('/');
 	}
+	
+	//debug (console.log)
+	function debug() { if (window.console && console.log && log) for (var i in arguments) console.log(arguments[i]); }	
+
+
+	/* ---
+	| JSON > XML convertor (creates XML string)
+	--- */
+
+	function json_to_xml(obj, root_name, depth) {
+	    
+		//prep
+		var xml = '', depth = depth || 0, root_name = root_name || 'root';
+		if (!depth) xml = '<'+root_name+'>';
+
+		//recurse over passed object (for-in) or array (for)
+		if (obj.toString() == '[object Object]') for (var i in obj) xml += build_node(i, obj[i]);
+		else if (obj instanceof Array) for (var i=0, len = obj.length; i<len; i++) xml += build_node('node', obj[i]);
+
+		//util to build individual XML node. Tags named after object key or, if array, 'node'. Coerce tag name to be valid.
+		function build_node(tag_name, val) {
+			var
+			tag_name = tag_name.replace(/[^\w\-_]/g, '-').replace(/-{2,}/g, '-').replace(/^[^a-z]/, function($0) { return 'node-'+$0; }),
+			padder = new Array(depth + 2).join('\t'),
+			node = '\n'+padder+'<'+tag_name+'>\n'+padder+'\t';
+			node += typeof val != 'object' ? val : json_to_xml(val, null, depth + 1);
+			return node + '\n'+padder+'</'+tag_name+'>\n';
+		}
+
+		if (!depth) xml += '</'+root_name+'>';
+
+		//return XML string, cleaning it up a bit first
+		return xml
+			.replace(/&(?= )/g, '&amp;')
+			.replace(/^\n(?=<)/, '')
+			.replace(/\n{2,}/g, '\n')
+			.replace(/^\t+\n/mg, '');
+	}
+
 
 })(jQuery)
