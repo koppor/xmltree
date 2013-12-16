@@ -4,7 +4,16 @@
 		<link rel='stylesheet' type='text/css' href='../xmltree.css' />
 		<script src='http://code.jquery.com/jquery-1.10.2.min.js'></script>
 		<script src='../xmltree.js'></script>
-		<script>$(function() { new XMLTree({fpath: 'xml.xml', container: '#tree', startCollapsed: true}); });</script>
+		<script>
+		$(function() {
+			new XMLTree({
+				fpath: 'xml.xml',
+				container: '#tree',
+				startCollapsed: true
+			});
+		});
+		</script>
+		<title>XMLTree minimal example (AMD version)</title>
 	</head>
 	<body>
 		<div id='tree'></div>

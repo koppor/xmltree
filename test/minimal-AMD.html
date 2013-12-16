@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+	<head>
+		<link rel='stylesheet' type='text/css' href='../xmltree.css' />
+		<script src="http://requirejs.org/docs/release/2.1.9/minified/require.js"></script>
+		<script>
+			require.config({
+				baseUrl: "../",
+				paths: {
+					"jquery": "http://code.jquery.com/jquery-1.10.2.min"
+				}
+			});
+		</script>
+		<title>XMLTree minimal example (AMD version)</title>
+	</head>
+	<body>
+		<div id='tree'></div>
+		<script>
+			require(["xmltree"], function(xmltree) {
+				new xmltree({
+					fpath: 'xml.xml',
+					container: '#tree',
+					startCollapsed: true
+				});
+			});
+		</script>
+	</body>
+</html>

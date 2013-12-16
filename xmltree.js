@@ -1,7 +1,8 @@
 /* ==============
 The MIT License (MIT)
 
-Copyright (c) 2013 Mitya <mitya@mitya.co.uk>
+Copyright (c) 2011-2013 Mitya <mitya@mitya.co.uk>
+Copyright (c) 2011-2013 Oliver Kopp
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +28,17 @@ THE SOFTWARE.
 | github page: http://www.github.com/koppor/xmltree
 ============== */
 
-(function($) {
+// AMD and non-AMD compatibility inspired by http://tkareine.org/blog/2012/08/11/why-javascript-needs-module-definitions/ and https://github.com/blueimp/jQuery-File-Upload/blob/9.5.0/js/jquery.fileupload.js
+(function(factory) {
+  if (typeof define === 'function' && define.amd) {
+    // Register as named AMD module. Anonymous registering causes "Mismatched anonymous define() module" in requirejs 2.9.1 when script is loaded explicitly and then loaded with requirejs
+    define("xmltree", ['jquery'], factory);
+  } else {
+    // traditional browser loading: build object with directly referencing the global jQuery object and inject it into window object
+    // "XMLTree" is used to provide backwards compatiblity with XMLTree 3.0.0
+    window.XMLTree = factory(window.jQuery);
+  }
+}(function($) {
 
 	//log progress?
 	var log = location.href.indexOf('XMLTreeLog=true') != -1;
@@ -37,7 +48,7 @@ THE SOFTWARE.
 		/* -------------------
 		| PREP & VALIDATION
 		------------------- */
-		
+
 		if (location.href.indexOf('debug') != -1) this.debug = true;
 
 		//ensure was instantiated, not merely called
@@ -77,7 +88,7 @@ THE SOFTWARE.
 			if (jdo['class']) this.tree.addClass(jdo['class']);
 			if (jdo.startExpanded) this.tree.addClass('startExpanded');
 		}
-		
+
 		//and any data?
 		if (jdo.data) for (var i in jdo.data) this.tree.data(i, jdo.data[i]);
 
@@ -96,7 +107,7 @@ THE SOFTWARE.
 
 		//get XML from file ('done' handler fires not here but slightly further down)
 		if (jdo.fpath) {
-			
+
 			debug('XML tree fpath:', jdo.fpath);
 
 			//get data...
@@ -161,7 +172,7 @@ THE SOFTWARE.
 
 			//start delving. Since JS seems to add another, outer root element, our (real) root it is child
 			this.xml.children().each(function() { delve($(this), thiss.tree); });
-			
+
 			//if sub-tree, if we ended up with no data, remove tree and also corresponding plus/min. Else show tree.
 			if (subTreeRequest) this.xml.children().length ? this.tree.show() : this.tree.prev('.plusMin').andSelf().remove();
 
@@ -229,7 +240,7 @@ THE SOFTWARE.
 			//if no children, simply append text (if any)
 			if (!kids.length)
 				LITxtHolder.prepend(node.immediateText()).prepend(tagName);
-				
+
 			//if children, set stored procedures that will run and create them only when branch expanded - unless starting expanded
 			//or if tree involves sub-trees
 			else {
@@ -245,7 +256,7 @@ THE SOFTWARE.
 					});
 				} else
 					storedProcedure();
-				
+
 			}
 
 		}
@@ -271,7 +282,7 @@ THE SOFTWARE.
 
 				//prep
 				evt.stopPropagation();
-				var 
+				var
 				uls = $(this).parent().children('ul'),
 				currState = $(this).is('.collapsed') ? 'closed' : 'open',
 				xPathToNode = returnXPathToNode($(this).parent()),
@@ -350,7 +361,7 @@ THE SOFTWARE.
 
 	}
 
-	//log instances
+	//count instances. Used for assigning unique IDs
 	XMLTree.instancesCounter = 0;
 
 
@@ -386,9 +397,9 @@ THE SOFTWARE.
 		 });
 		return path.join('/');
 	}
-	
+
 	//debug (console.log)
-	function debug() { if (window.console && console.log && log) for (var i in arguments) console.log(arguments[i]); }	
+	function debug() { if (window.console && console.log && log) for (var i in arguments) console.log(arguments[i]); }
 
 
 	/* ---
@@ -396,7 +407,7 @@ THE SOFTWARE.
 	--- */
 
 	function json_to_xml(obj, root_name, depth) {
-	    
+
 		//prep
 		var xml = '', depth = depth || 0, root_name = root_name || 'root';
 		if (!depth) xml = '<'+root_name+'>';
@@ -425,5 +436,5 @@ THE SOFTWARE.
 			.replace(/^\t+\n/mg, '');
 	}
 
-
-})(jQuery)
+	return XMLTree;
+}));
