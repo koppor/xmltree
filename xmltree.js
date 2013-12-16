@@ -121,6 +121,8 @@ THE SOFTWARE.
 						delete jdo.fpath;
 						jdo.xml = json_to_xml(data);
 						return new XMLTree(jdo, subTreeRequest);
+					} else {
+						data = cleanXML(data);
 					}
 					thiss.xml = data;
 					actOnXML.call(thiss, data);
@@ -131,21 +133,26 @@ THE SOFTWARE.
 
 		//passed as string
 		} else {
-			if (typeof jdo.xml == 'string')
+			if (typeof jdo.xml == 'string') {
 
-				this.xml = jdo.xml;
-
-				//rename tags (why are we doing this?? Forgot! Disallow if param passed)
-				if (!jdo.noTagRenaming) this.xml = this.xml
-					.replace(/<(\/)?(\w+)([^>]*)>/g, function($0, $1, $2, $3) { return '<'+($1 ? $1 : '')+$2+'_'+rand+($3 ? $3 : '')+'>'; })
-					.replace(/<\?xml[^>]+>\s*/, '');
+				this.xml = cleanXML(jdo.xml);
 
 				//also strip out entities as they break JS XML parsing
 				//this.xml = this.xml.replace(/&amp;|&(?= )/g, 'and').replace(/&\w+;/g, '');
 
 				actOnXML.call(this);
+			} else {
+				alert('XMLTree error - jdo.xml is not a string');
+			}
 		}
 
+		/**
+		 * Does some XML cleaning
+		 */
+		function cleanXML(xml) {
+			// just strip xml processing instruction
+			return xml.replace(/<\?xml[^>]+>\s*/, '');
+		}
 
 		/* -------------------
 		| ACT ON XML - once we have the XML, start outputting from it. If XML is string, first parse.
