@@ -2,14 +2,22 @@
 <html>
 	<head>
 		<link rel='stylesheet' type='text/css' href='https://rawgithub.com/koppor/xmltree/master/xmltree.css' />
-		<script src='http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.10.2.min.js'></script>
+		<link rel='stylesheet' type='text/css' href='http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css' />
+		<script src='http://code.jquery.com/jquery-1.10.2.min.js'></script>
 		<script src='https://rawgithub.com/koppor/xmltree/master/xmltree.js'></script>
 		<script>$(function() { new XMLTree({fpath: 'xml.xml', container: '#tree', startCollapsed: true}); });</script>
 	</head>
 	<body>
 		<h1>XMLTree</h1>
-		<h4>For options and documentations, visit <a href='http://mitya.co.uk/scripts/XML-Tree---visualise-and-traverse-your-XML-186'>www.mitya.co.uk/scripts/XML-Tree---visualise-and-traverse-your-XML-186</a>.</h4>
-		<h4>For more info on use with a web service, i.e. sub-trees, visit <a href='http://www.mitya.co.uk/blog/2012/Feb/Presenting-XMLTree-v-199'>http://www.mitya.co.uk/blog/2012/Feb/Presenting-XMLTree-v-199</a></h4>
+		<h2>Information</h2>
+		<ul>
+			<li>For options and documentations, visit <a href='http://mitya.co.uk/scripts/XML-Tree---visualise-and-traverse-your-XML-186'>www.mitya.co.uk/scripts/XML-Tree---visualise-and-traverse-your-XML-186</a>.</li>
+			<li>For more info on use with a web service, i.e. sub-trees, visit <a href='http://www.mitya.co.uk/blog/2012/Feb/Presenting-XMLTree-v-199'>http://www.mitya.co.uk/blog/2012/Feb/Presenting-XMLTree-v-199</a>.</li>
+			<li>The source code is available at github: <a href="https://github.com/koppor/xmltree">https://github.com/koppor/xmltree</a>.
+		</ul>
+		<h2>Demo</h2>
+		<p>This shows the XML tree rendering of <a href="xml.xml">xml.xml</a>.</p>
+
 		<div id='tree'></div>
 	</body>
 </html>
