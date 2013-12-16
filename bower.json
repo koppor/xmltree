@@ -1,0 +1,31 @@
+{
+  "name": "xmltree",
+  "main": "xmltree.js",
+  "version": "3.1.0-dev01",
+  "homepage": "http://koppor.github.io/xmltree/",
+  "authors": [
+    "Mitya <mitya@mitya.co.uk>",
+    "Oliver Kopp <kopp.dev@gmail.com>"
+  ],
+  "description": "Visualise and traverse your XML in form of a tree",
+  "keywords": [
+    "XML",
+    "Tree"
+  ],
+  "dependencies": {
+    "jQuery": ">= 1.7.0"
+  },
+  "repository": {
+    "type": "git", "url": "https://github.com/koppor/xmltree.git"
+  },
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "src/main/webapp/components",
+    "test",
+    "tests",
+    "README.md"
+  ]
+}
