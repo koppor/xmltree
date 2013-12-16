@@ -68,7 +68,6 @@ THE SOFTWARE.
 			appendTo,
 			attrLI,
 			container = $(jdo.container),
-			rand = Math.floor(Math.random() * 10000000),
 			thiss = this,
 			fpath_req;
 
@@ -197,7 +196,7 @@ THE SOFTWARE.
 			var tagName, li, ul, attrs, i, kids, storedProcedure, LITxtHolder;
 
 			//what's this node's tag name?
-			tagName = node[0].tagName.replace(new RegExp('_'+rand+'$', 'i'), '').toLowerCase();
+			tagName = node[0].tagName;
 
 			//build LI and sub-UL for this node (note, tagname is applied as class to LI, for easy post-tree traversal)
 			appendTo.append((li = $('<li>').addClass(tagName).append(LITxtHolder = $('<span>').addClass('LIText')).append(ul = $('<ul>'))));
