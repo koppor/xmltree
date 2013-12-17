@@ -1,7 +1,7 @@
 {
   "name": "xmltree",
   "main": "xmltree.js",
-  "version": "3.1.0-dev01",
+  "version": "3.1.0",
   "homepage": "http://koppor.github.io/xmltree/",
   "authors": [
     "Mitya <mitya@mitya.co.uk>",
