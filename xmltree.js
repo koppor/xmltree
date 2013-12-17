@@ -321,7 +321,22 @@ THE SOFTWARE.
 						$(this).parents('li').each(function() { thisPathIndecies.unshift($(this).index()); });
 						paths.push(thisPathIndecies.join(','));
 					});
-					location.replace('#tree'+thiss.instanceID+':'+paths.join('|')+';');
+					var newTreeHash = 'tree'+thiss.instanceID+':'+paths.join('|')+';'
+					// idea by http://stackoverflow.com/a/5257214/873282
+					var replaced = false;
+					var regExp = new RegExp('tree'+thiss.instanceID+':([0-9,\-\|]+);');
+					var newHash = location.hash.replace(regExp, function(token){replaced = true; return newTreeHash;});
+					if (!replaced) {
+						// no match, just append
+						if (newHash.indexOf(";", newHash.length - 1) !== -1) {
+							// newHash ends with ";" -> just append newTreeHash
+							newHash = newHash + newTreeHash;
+						} else {
+							// ";" needed as separator
+							newHash = newHash + ";" + newTreeHash;
+						}
+					}
+					location.hash = newHash;
 				}
 
 			})
@@ -344,7 +359,7 @@ THE SOFTWARE.
 			//onload - re-entry point(s) stipulated in URL hash or in params (@openAtPath)?
 
 			//...stipulated in hash
-			var paths = new RegExp('#tree'+this.instanceID+':([0-9,\-\|]+);').exec(location.hash);
+			var paths = new RegExp('tree'+this.instanceID+':([0-9,\-\|]+);').exec(location.hash);
 			if (paths) {
 				var paths = paths[1].split('|');
 				for(var y in paths) {
