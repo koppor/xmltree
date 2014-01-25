@@ -410,13 +410,13 @@ THE SOFTWARE.
 	function returnXPathToNode(nodeEl) {
 		var path = [];
 		nodeEl.parents('li').andSelf().each(function() {
-			var nodeName = $(this).children('.LIText').children('.node').text();
+			var nodeName = $(this).children('.LIText').children('.tree_node').text();
 			var step = nodeName;
-			var index = $(this).prevAll().filter(function() { return $(this).children('.LIText').children('.node').text() == nodeName; }).length + 1;
+			var index = $(this).prevAll().filter(function() { return $(this).children('.LIText').children('.tree_node').text() == nodeName; }).length + 1;
 			if (index > 1) step += '['+index+']'
 			path.push(step);
 		 });
-		return path.join('/');
+		return "/" + path.join('/');
 	}
 
 	//debug (console.log)
