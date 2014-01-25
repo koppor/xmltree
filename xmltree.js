@@ -412,8 +412,15 @@ THE SOFTWARE.
 		nodeEl.parents('li').andSelf().each(function() {
 			var nodeName = $(this).children('.LIText').children('.tree_node').text();
 			var step = nodeName;
-			var index = $(this).prevAll().filter(function() { return $(this).children('.LIText').children('.tree_node').text() == nodeName; }).length + 1;
-			if (index > 1) step += '['+index+']'
+			// The li element has the nodename attached as class.
+			// If nodes have a QName with a namespace prefix, that class cannot be queried
+			// Therefore, we have to check the grandchild of each li element
+			var numberOfSilblings = $(this).siblings().filter(function() { return $(this).children('.LIText').children('.tree_node').text() == nodeName; }).length;
+			if (numberOfSilblings != 0) {
+				// more than one child with the same name -- we have to add an index
+				var index = $(this).prevAll().filter(function() { return $(this).children('.LIText').children('.tree_node').text() == nodeName; }).length + 1;
+				step += '['+index+']';
+			}
 			path.push(step);
 		 });
 		return "/" + path.join('/');
