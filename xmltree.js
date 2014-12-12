@@ -202,7 +202,7 @@ THE SOFTWARE.
 			appendTo.append((li = $('<li>').addClass(tagName).append(LITxtHolder = $('<span>').addClass('LIText')).append(ul = $('<ul>'))));
 
 			//plus/mins indicator
-			li.append($('<span>', {html: jdo.startExpanded ? '-' : '+'}).addClass('plusMin collapsed'));
+			li.append($('<span>', {html: jdo.startExpanded ? '-' : '+'}).addClass('plusMin expanded'));
 
 			//attributes...
 			attrs = node[0].attributes;
